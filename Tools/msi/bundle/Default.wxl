@@ -125,5 +125,5 @@
   <String Id="SuccessMaxPathButton">禁用路径长度限制</String>
   <String Id="SuccessMaxPathButtonNote">修改计算机配置，允许包括 Python 在内的程序绕过 260 字符的“MAX_PATH”限制。</String>
 
-  <String Id="DeprecationMessage">注意：此安装程序即将退役，Python 3.15 之后将不再提供。&lt;a href="https://docs.python.org/using/windows"&gt;更多信息&lt;/a&gt;</String>
+  <String Id="DeprecationMessage">注意：这个中文修改版，使用帮助见&lt;a href="https://www.52zwbc.com"&gt;本人网站&lt;/a&gt;</String>
 </WixLocalization>

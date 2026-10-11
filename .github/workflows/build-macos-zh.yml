@@ -1,6 +1,6 @@
 name: Build macOS 中文版安装包
 
-# macOS universal2（arm64+x86_64）中文版 .dmg，发布到 v3.15.0-zh1
+# macOS universal2（arm64+x86_64）中文版 .dmg，发布到 v3.15.0-zh2
 # 官方 build-installer.py 只产出 installer/Python.mpkg + diskimage/*.dmg，无单体 .pkg
 # 触发：手动 workflow_dispatch（Release 已存在，直接追加附件）
 
@@ -45,11 +45,15 @@ jobs:
           test -d "$MPKG" || { echo "Python.mpkg 不存在"; exit 1; }
           test -f "$DMG" || { echo "dmg 不存在"; exit 1; }
           # macOS 26 的 installer 拒收古董 bundle 式 mpkg（非中文改动问题），仅记录，不阻塞发布。
-          sudo installer -pkg "$MPKG" -target / || echo "WARN: installer 拒收 bundle-mpkg（macOS 26 已知限制），继续验证 staging"
+          # staging 二进制的 framework install_name 指向最终路径，故手动把 staging
+          # framework 拷贝到 /Library（只放 Versions/3.15，不动 Current 链接），再测正式路径。
+          sudo installer -pkg "$MPKG" -target / || echo "WARN: installer 拒收 bundle-mpkg（macOS 26 已知限制），改手动安装 framework"
+          sudo mkdir -p /Library/Frameworks/Python.framework/Versions/3.15
+          sudo cp -R /tmp/_py/_root/Library/Frameworks/Python.framework/Versions/3.15/* /Library/Frameworks/Python.framework/Versions/3.15/
           export PYTHONIOENCODING=utf-8
-          # 必须测 staging（dmg 打包内容本身，3.15.0 含中文）；runner 自带 /Library 旧版本无中文，不可用。
-          FW=/tmp/_py/_root/Library/Frameworks/Python.framework/Versions/3.15/bin/python3
-          test -x "$FW" || { echo "staging python 不存在"; exit 1; }
+          # 测正式路径（二进制与 dmg 打包内容一致，3.15.0 含中文）；runner 自带旧版本无中文，不可用。
+          FW=/Library/Frameworks/Python.framework/Versions/3.15/bin/python3
+          test -x "$FW" || { echo "framework python 不存在"; exit 1; }
           echo "FW=$FW"
           $FW --version
           $FW -c "import sys; assert '3.15.0' in sys.version, sys.version"
@@ -64,20 +68,20 @@ jobs:
       - name: 改名zh后缀并列出产物
         run: |
           DMG=$(ls /tmp/_py/diskimage/*.dmg | head -1)
-          cp "$DMG" python-3.15.0-macos-zhv1.dmg || exit 1
-          ls -la python-3.15.0-macos-zhv1.dmg
+          cp "$DMG" python-3.15.0-macos-zhv2.dmg || exit 1
+          ls -la python-3.15.0-macos-zhv2.dmg
         shell: bash
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: python315zw-macos-zh
-          path: python-3.15.0-macos-zhv1.dmg
+          path: python-3.15.0-macos-zhv2.dmg
 
-      - name: 追加到v3.15.0-zh1 Release
+      - name: 追加到v3.15.0-zh2 Release
         run: |
-          gh release view v3.15.0-zh1 >/dev/null 2>&1 || gh release create v3.15.0-zh1 --title "v3.15.0-zh1" --generate-notes || true
-          gh release upload v3.15.0-zh1 python-3.15.0-macos-zhv1.dmg --clobber
+          gh release view v3.15.0-zh2 >/dev/null 2>&1 || gh release create v3.15.0-zh2 --title "v3.15.0-zh2" --generate-notes || true
+          gh release upload v3.15.0-zh2 python-3.15.0-macos-zhv2.dmg --clobber
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

@@ -42,7 +42,7 @@ jobs:
 
       - name: 改名v1版本后缀
         run: |
-          ren dist\amd64\python-3.15.0-amd64.exe python-3.15.0-amd64v1.exe || exit /b 1
+          ren dist\amd64\python-3.15.0-amd64.exe python-3.15.0-amd64v2.exe || exit /b 1
           dir dist\amd64
         shell: cmd
 
