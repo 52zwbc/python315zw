@@ -285,9 +285,18 @@ def library_recipes():
               ],
               useLDFlags=False,
               buildrecipe=tweak_tcl_build,
-              install='make TCL_LIBRARY=%(TCL_LIBRARY)s && make install TCL_LIBRARY=%(TCL_LIBRARY)s DESTDIR=%(DESTDIR)s'%{
+              # 中文版两阶段编 Tcl(同 314 修法)：首个 make 即配 thread/tdbc 等捆绑包，
+              # 需运行刚编出的 tclsh，而其 libtcl install_name 指向最终 Framework 路径，
+              # 新 runner 无旧框架则 dyld 挂。先 make binaries(只编库+壳)并预置 dylib
+              # 到最终路径，再全量 make && make install(官方发布机因装过旧框架而不缺此步)。
+              install=('make TCL_LIBRARY=%(TCL_LIBRARY)s binaries'
+                       ' && sudo mkdir -p %(FWLIB)s'
+                       ' && sudo cp libtcl*.dylib %(FWLIB)s/'
+                       ' && make TCL_LIBRARY=%(TCL_LIBRARY)s'
+                       ' && make install TCL_LIBRARY=%(TCL_LIBRARY)s DESTDIR=%(DESTDIR)s')%{
                   "DESTDIR": shellQuote(os.path.join(WORKDIR, 'libraries')),
                   "TCL_LIBRARY": shellQuote('/Library/Frameworks/Python.framework/Versions/%s/lib/tcl8.6'%(getVersion())),
+                  "FWLIB": shellQuote('/Library/Frameworks/Python.framework/Versions/%s/lib'%(getVersion(),)),
                   },
               ),
           dict(

@@ -1,6 +1,8 @@
+diff --git a/Tools/msi/bundle/Default.wxl b/Tools/msi/bundle/Default.wxl
+index bb97e8c..089b9e3 100644
 --- a/Tools/msi/bundle/Default.wxl
 +++ b/Tools/msi/bundle/Default.wxl
-@@ -89,9 +89,9 @@
+@@ -88,9 +88,9 @@
    <String Id="ShortInstallLauncherAllUsersLabel">安装 py.exe 时使用管理员权限(&amp;L)</String>
    <String Id="ShortInstallLauncherBlockedLabel">Python 启动器已安装</String>
    <String Id="PrecompileLabel">预编译标准库(&amp;P)</String>
@@ -13,7 +15,7 @@
  
    <String Id="ProgressHeader">[ActionLikeInstallation]进度</String>
    <String Id="ProgressLabel">[ActionLikeInstalling]：</String>
-@@ -120,9 +120,24 @@
+@@ -119,9 +119,24 @@
    <String Id="FailureRestartText">必须重启计算机才能完成软件回滚。</String>
    <String Id="FailureRestartButton">重启(&amp;R)</String>
    <String Id="FailureExistingInstall">由于已存在安装，无法安装 [WixBundleName]。请使用“程序和功能”修改、修复或删除 [WixBundleName]。</String>
@@ -39,3 +41,4 @@
 +请访问 &lt;a href="https://www.python.org/"&gt;python.org&lt;/a&gt; 下载 Python 3.4。</String>
    <String Id="SuccessMaxPathButton">禁用路径长度限制</String>
    <String Id="SuccessMaxPathButtonNote">修改计算机配置，允许包括 Python 在内的程序绕过 260 字符的“MAX_PATH”限制。</String>
+ 
