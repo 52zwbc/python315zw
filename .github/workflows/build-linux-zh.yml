@@ -53,7 +53,7 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
 
-      - name: 打包 tar.gz + 生成 install.sh
+      - name: 打包 tar.gz + 生成 install.sh + 便携包
         run: |
           PKG=python-3.15.0-linux-${{ matrix.arch }}-zhv2.tar.gz
           tar czf $PKG -C staging opt
@@ -74,6 +74,56 @@ jobs:
           python3 -c "打印('安装成功')"
           EOF
           chmod +x install.sh
+          # ---- 解压即用便携包：staging 已证明可换目录运行（冒烟即跑 staging 路径），
+          # 这里把 staging/opt/python315zw 原样改名为顶层单目录，tar 后用户解压到任意位置，
+          # 直接 ./bin/python3 或顶层 ./python3 就能用，无需 sudo/编译/安装 ----
+          PORTNAME=python-3.15.0-linux-${{ matrix.arch }}-zhv2-portable
+          rm -rf "$PORTNAME"
+          mkdir -p "$PORTNAME"
+          cp -a staging/opt/python315zw/. "$PORTNAME"/
+          # 修 bin 下 pip 等脚本的绝对 shebang（/opt/python315zw 不存在时便携失效），改通用 env
+          grep -rl '^#!/opt/python315zw' "$PORTNAME"/bin 2>/dev/null | xargs -r sed -i '1s|^#!/opt/python315zw/bin/python[^ ]*|#!/usr/bin/env python3|' || true
+          cat > "$PORTNAME/python3" << 'EOF'
+          #!/bin/bash
+          # 解压即用入口：./python3 xxx.py（无需安装、无需 sudo）
+          HERE="$(dirname "$0")"
+          exec "$HERE/bin/python3" "$@"
+          EOF
+          chmod +x "$PORTNAME/python3"
+          cat > "$PORTNAME/pip3" << 'EOF'
+          #!/bin/bash
+          # 解压即用 pip：./pip3 install xxx（等价 python3 -m pip，不依赖 shebang）
+          HERE="$(dirname "$0")"
+          exec "$HERE/bin/python3" -m pip "$@"
+          EOF
+          chmod +x "$PORTNAME/pip3"
+          cat > "$PORTNAME/使用说明.txt" << 'EOF'
+          中文 Python 3.15 (Linux) 解压即用版，无需编译、无需安装、无需 sudo。
+
+          用法（以 x64 为例，arm 包同理）：
+            tar xzf python-3.15.0-linux-x64-zhv2-portable.tar.gz
+            cd python-3.15.0-linux-x64-zhv2-portable
+            ./python3 -c "打印('你好')"
+            ./python3 你的脚本.py
+            ./pip3 install requests
+
+          说明：
+            1. bin/python3 与顶层 ./python3 等效，顶层脚本只是方便入口。
+            2. pip 请用 ./pip3（即 python3 -m pip），不要直接用 bin/pip3（shebang 已改为 env 通用版）。
+            3. 需要 ubuntu-22.04 或更新发行版（glibc>=2.35）；更老系统请用源码编译版。
+            4. 想装成系统命令（需 sudo）：请改用同 Release 下的安装版 tar.gz + install.sh。
+          EOF
+          tar czf "$PORTNAME.tar.gz" "$PORTNAME"
+          ls -la "$PORTNAME.tar.gz"
+          # 便携包换目录可运行验证（搬到 /tmp 证明与构建路径无关）
+          rm -rf /tmp/portable-check && mkdir -p /tmp/portable-check
+          tar xzf "$PORTNAME.tar.gz" -C /tmp/portable-check
+          /tmp/portable-check/"$PORTNAME"/bin/python3 --version
+          /tmp/portable-check/"$PORTNAME"/bin/python3 -c "打印('portable-ok')"
+          /tmp/portable-check/"$PORTNAME"/python3 test_zh.py
+          /tmp/portable-check/"$PORTNAME"/python3 -m pip --version
+        env:
+          PYTHONIOENCODING: utf-8
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
@@ -81,12 +131,13 @@ jobs:
           name: python315zw-linux-${{ matrix.arch }}-zh
           path: |
             python-3.15.0-linux-${{ matrix.arch }}-zhv2.tar.gz
+            python-3.15.0-linux-${{ matrix.arch }}-zhv2-portable.tar.gz
             install.sh
 
       - name: 追加到v3.15.0-zh2 Release
         run: |
           gh release view v3.15.0-zh2 >/dev/null 2>&1 || gh release create v3.15.0-zh2 --title "v3.15.0-zh2" --generate-notes || true
-          gh release upload v3.15.0-zh2 python-3.15.0-linux-${{ matrix.arch }}-zhv2.tar.gz install.sh --clobber
+          gh release upload v3.15.0-zh2 python-3.15.0-linux-${{ matrix.arch }}-zhv2.tar.gz python-3.15.0-linux-${{ matrix.arch }}-zhv2-portable.tar.gz install.sh --clobber
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
